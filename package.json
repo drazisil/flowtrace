@@ -7,5 +7,8 @@
   "dependencies": {
     "acorn": "^8.19.0",
     "magic-string": "^1.4.3"
+  },
+  "scripts": {
+    "test": "node --test"
   }
 }

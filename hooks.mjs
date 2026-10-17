@@ -1,11 +1,12 @@
 // Runs in the module-loader thread. Rewrites JavaScript modules as they are loaded.
 // Nothing on disk changes.
 
+import { appendFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { transform } from "./transform.mjs";
 
-let config = { root: process.cwd(), include: [], selfDir: "" };
+let config = { root: process.cwd(), include: [], selfDir: "", inventory: "" };
 
 export async function initialize(data) {
 	config = data;
@@ -32,7 +33,10 @@ export async function load(url, context, nextLoad) {
 		typeof result.source === "string" ? result.source : Buffer.from(result.source).toString("utf8");
 
 	try {
-		const { code, wrapped } = transform(source, file);
+		const { code, wrapped, functions } = transform(source, file, config);
+		if (functions.length > 0) {
+			appendFileSync(config.inventory, `${functions.map((f) => JSON.stringify(f)).join("\n")}\n`);
+		}
 		process.stderr.write(`[flowtrace] ${wrapped} functions  ${file}\n`);
 		return { ...result, source: code };
 	} catch (error) {

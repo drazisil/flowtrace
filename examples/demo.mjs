@@ -1,4 +1,5 @@
 // A small packet server shape: a registry dispatch, async hops, a class hierarchy.
+import { register as registerOther } from "./other.mjs";
 
 class Base {
 	constructor(name) {
@@ -42,6 +43,7 @@ async function dispatch(connectionId, opcode, packet) {
 
 register(new Handler("login", 0x501));
 register(new Handler("repair", 0xb1));
+registerOther("repair");
 
 await Promise.all([
 	dispatch("conn-1", 0x501, [1, 2, 3]),
