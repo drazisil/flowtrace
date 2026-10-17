@@ -1,5 +1,5 @@
-// Usage:  node --import /data/Code/flowtrace/register.mjs app.mjs
-//   TypeScript via tsx:  node --import tsx --import /data/Code/flowtrace/register.mjs app.ts
+// Usage:  node --import /path/to/flowtrace/register.mjs app.mjs
+//   TypeScript via tsx:  node --import tsx --import /path/to/flowtrace/register.mjs app.ts
 //   (tsx first, so this loader runs on tsx's JavaScript output)
 //
 // Environment:
