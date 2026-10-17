@@ -1,0 +1,12 @@
+{
+  "name": "flowtrace",
+  "version": "0.0.1",
+  "description": "Run a Node program and write a log of the code flow. No source changes: functions are wrapped at load time.",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@jridgewell/trace-mapping": "^0.3.31",
+    "acorn": "^8.19.0",
+    "magic-string": "^1.4.3"
+  }
+}
