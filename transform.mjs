@@ -1,6 +1,6 @@
 // Rewrites every block-bodied function so its body runs inside __flowtrace.call(...).
 //
-//   function f(a) { BODY }   ->   function f(a) { return __flowtrace.call("f|file:12", arguments, () => { BODY }); }
+//   function f(a) { BODY }   ->   function f(a) { return __flowtrace.call("f", () => { BODY }); }
 //
 // The body moves into an arrow function, which keeps `this`, `arguments`, `new.target`
 // and `super` working, and lets a derived constructor still call super(). Async functions
@@ -9,10 +9,8 @@
 // Not wrapped (on purpose): generators and async generators (the body cannot move into an
 // arrow), and expression-bodied arrows (inline callbacks like `.map(x => x + 1)`, too noisy).
 
-import { relative } from "node:path";
 import { parse } from "acorn";
 import MagicString from "magic-string";
-import { TraceMap, originalPositionFor } from "@jridgewell/trace-mapping";
 
 const FUNCTION_TYPES = new Set([
 	"FunctionDeclaration",
@@ -50,22 +48,12 @@ function functionName(node, parent, cls, source) {
 	return node.id?.name ?? "<anon>";
 }
 
-// tsx and similar tools leave an inline source map; use it so the log shows .ts lines.
-function readInlineMap(source) {
-	const match = source.match(
-		/\/\/# sourceMappingURL=data:application\/json(?:;charset=utf-8)?;base64,([A-Za-z0-9+/=]+)/,
-	);
-	if (!match) return null;
-	return new TraceMap(Buffer.from(match[1], "base64").toString("utf8"));
-}
-
 /**
  * @param {string} source module source (already JavaScript)
- * @param {string} file absolute path, used for the log label
- * @param {{ root: string, args: boolean }} options
+ * @param {string} _file absolute path (unused: the log records names only)
  * @returns {{ code: string, wrapped: number }}
  */
-export function transform(source, file, { root, args }) {
+export function transform(source, _file) {
 	const ast = parse(source, {
 		ecmaVersion: "latest",
 		sourceType: "module",
@@ -73,17 +61,6 @@ export function transform(source, file, { root, args }) {
 		allowHashBang: true,
 	});
 	const out = new MagicString(source);
-	const map = readInlineMap(source);
-	const label = relative(root, file) || file;
-
-	function sourceLine(node) {
-		if (!map) return node.loc.start.line;
-		const pos = originalPositionFor(map, {
-			line: node.loc.start.line,
-			column: node.loc.start.column,
-		});
-		return pos.line ?? node.loc.start.line;
-	}
 	let wrapped = 0;
 
 	function wrap(node, parent, cls) {
@@ -91,13 +68,11 @@ export function transform(source, file, { root, args }) {
 		if (node.body.type !== "BlockStatement") return;
 
 		const name = functionName(node, parent, cls, source);
-		const meta = JSON.stringify(`${name}|${label}:${sourceLine(node)}`);
-		const argsExpr = args && node.type !== "ArrowFunctionExpression" ? "arguments" : "undefined";
 		const asyncKw = node.async ? "async " : "";
 
 		out.appendLeft(
 			node.body.start + 1,
-			`return globalThis.__flowtrace.call(${meta}, ${argsExpr}, ${asyncKw}() => {`,
+			`return globalThis.__flowtrace.call(${JSON.stringify(name)}, ${asyncKw}() => {`,
 		);
 		out.prependRight(node.body.end - 1, "});");
 		wrapped++;

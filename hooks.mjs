@@ -5,7 +5,7 @@ import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { transform } from "./transform.mjs";
 
-let config = { root: process.cwd(), include: [], args: true, selfDir: "" };
+let config = { root: process.cwd(), include: [], selfDir: "" };
 
 export async function initialize(data) {
 	config = data;
@@ -32,7 +32,7 @@ export async function load(url, context, nextLoad) {
 		typeof result.source === "string" ? result.source : Buffer.from(result.source).toString("utf8");
 
 	try {
-		const { code, wrapped } = transform(source, file, config);
+		const { code, wrapped } = transform(source, file);
 		process.stderr.write(`[flowtrace] ${wrapped} functions  ${file}\n`);
 		return { ...result, source: code };
 	} catch (error) {
