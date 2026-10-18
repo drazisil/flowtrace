@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.1
+
+- Fix: under tsx 4.2x on Node 22.15 or newer, every TypeScript file was skipped with
+  `Unexpected token`. tsx now converts TypeScript in a synchronous `module.registerHooks` hook,
+  which runs outside flowtrace's asynchronous `module.register()` hook, so flowtrace received raw
+  TypeScript. flowtrace now registers with `module.registerHooks` when it exists, after tsx, and so
+  sees tsx's JavaScript. Older Node versions still use `module.register()`.
+- The source-rewriting step moved to `rewrite.mjs`, shared by both paths.
+
 ## 0.1.0
 
 First public version.

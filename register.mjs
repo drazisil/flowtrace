@@ -12,18 +12,30 @@
 
 import "./runtime.mjs";
 import { writeFileSync } from "node:fs";
-import { register } from "node:module";
+import * as nodeModule from "node:module";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { rewrite } from "./rewrite.mjs";
 
 const inventory = `${resolve(process.env.FLOWTRACE_OUT ?? "flowtrace.log")}.functions.jsonl`;
 writeFileSync(inventory, "");
 
-register("./hooks.mjs", import.meta.url, {
-	data: {
-		root: process.env.FLOWTRACE_ROOT ?? process.cwd(),
-		include: (process.env.FLOWTRACE_INCLUDE ?? "").split(",").filter(Boolean),
-		selfDir: dirname(fileURLToPath(import.meta.url)),
-		inventory,
-	},
-});
+const config = {
+	root: process.env.FLOWTRACE_ROOT ?? process.cwd(),
+	include: (process.env.FLOWTRACE_INCLUDE ?? "").split(",").filter(Boolean),
+	selfDir: dirname(fileURLToPath(import.meta.url)),
+	inventory,
+};
+
+if (typeof nodeModule.registerHooks === "function") {
+	// A synchronous hook registered here runs outside the ones registered before it. That is what
+	// lets it see tsx's JavaScript: tsx 4.2x on Node 22.15+ registers this way too, and an
+	// asynchronous module.register() hook would run beneath it and see raw TypeScript.
+	nodeModule.registerHooks({
+		load(url, context, nextLoad) {
+			return rewrite(url, nextLoad(url, context), config);
+		},
+	});
+} else {
+	nodeModule.register("./hooks.mjs", import.meta.url, { data: config });
+}
