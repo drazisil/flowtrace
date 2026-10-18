@@ -32,6 +32,8 @@ node --import tsx --import /path/to/flowtrace/register.mjs your-app.ts
 ```
 
 The log is written to `./flowtrace.log`. Node 20.6 or newer.
+On Node 22.15 and newer flowtrace hooks in with `module.registerHooks`, so keep `--import tsx` before
+`--import flowtrace`: the later hook runs outermost and sees tsx's output.
 
 To use it from another project: `npm install --save-dev github:drazisil/flowtrace`, then
 `node --import flowtrace/register your-app.mjs`.
